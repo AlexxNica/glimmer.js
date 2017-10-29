@@ -12,6 +12,55 @@ import { dict, Dict } from "@glimmer/util";
  * Marking a property as tracked means that when that property changes,
  * a rerender of the component is scheduled so the template is kept up to date.
  *
+ * There are two usages for the `@tracked` decorator, shown below.
+ *
+ * @example No dependencies
+ *
+ * If you don't pass an argument to `@tracked`, only changes to that property
+ * will be tracked:
+ *
+ * ```typescript
+ * import Component, { tracked } from '@glimmer/component';
+ *
+ * export default class MyComponent extends Component {
+ *    @tracked
+ *    remainingApples = 10
+ * }
+ * ```
+ *
+ * When something changes the component's `remaining` property, the rerender
+ * will be scheduled.
+ *
+ * @example Dependents
+ *
+ * In the case that you have a computed property that depends on another
+ * property, you want to track both so that when one of them changes a
+ * rerender is scheduled.
+ *
+ * In the following example we have three properties, `totalApples`,
+ * `eatenApples`, and `remainingApples`.
+ *
+ *
+ * ```typescript
+ * import Component, { tracked } from '@glimmer/component';
+ *
+ * export default class MyComponent extends Component {
+ *   totalApples = 100
+ *
+ *   @tracked
+ *   eatenApples = 0
+ *
+ *   @tracked('totalApples', 'eatenApples')
+ *   get remainingApples() {
+ *     return this.totalApples - this.eatenApples;
+ *   }
+ *
+ *   increment() {
+ *     this.eatenApples++;
+ *   }
+ * }
+ * ```
+ *
  * @param dependencies Optional dependents to be tracked.
  */
 export function tracked(...dependencies: string[]): MethodDecorator;
@@ -21,7 +70,7 @@ export function tracked(...dependencies: any[]): any {
   let [target, key, descriptor] = dependencies;
 
   if (typeof target === "string") {
-    return function(target: any, key: string | Symbol, descriptor: PropertyDescriptor) {
+    return function (target: any, key: string | Symbol, descriptor: PropertyDescriptor) {
       return descriptorForTrackedComputedProperty(target, key, descriptor, dependencies);
     };
   } else {
@@ -42,7 +91,7 @@ function descriptorForTrackedComputedProperty(target: any, key: any, descriptor:
     enumerable: true,
     configurable: false,
     get: descriptor.get,
-    set: function() {
+    set: function () {
       metaFor(this).dirtyableTagFor(key).inner.dirty();
       descriptor.set.apply(this, arguments);
       propertyDidChange();
@@ -194,7 +243,7 @@ function hasOwnProperty(obj: any, key: symbol) {
   return hOP.call(obj, key);
 }
 
-let propertyDidChange = function() {};
+let propertyDidChange = function () { };
 
 export function setPropertyDidChange(cb: () => void) {
   propertyDidChange = cb;
